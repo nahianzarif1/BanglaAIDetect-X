@@ -1,12 +1,10 @@
 """
-src/models/baseline.py
+Level-1/2 fusion baseline:
+  word TF-IDF + character TF-IDF + Bangla stylometry → Logistic Regression.
 
-Level-1 baseline: TF-IDF + Logistic Regression.
-Build and pass this FIRST, before touching BanglaBERT — it proves
-data -> train -> eval -> predict works end-to-end.
-
-Usage:
-    python -m src.models.baseline
+Word TF-IDF alone overfit the 20-row toy set and then guessed ~50% on
+real ChatGPT / Wikipedia. Stylometry (burstiness, discourse markers,
+numbers, formulaic openings) is what transfers to unseen topics.
 """
 
 import os
@@ -14,12 +12,16 @@ import json
 import yaml
 import joblib
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import (
     precision_score, recall_score, f1_score, roc_auc_score,
-    average_precision_score, classification_report,
+    average_precision_score, classification_report, brier_score_loss,
 )
+
+from src.features.stylometry import StylometryTransformer
 
 
 def load_config(path: str = "config.yaml") -> dict:
@@ -28,13 +30,12 @@ def load_config(path: str = "config.yaml") -> dict:
 
 
 def load_splits(cfg: dict):
-    # Check for both possible locations of split files
     possible_paths = {
         "train": [cfg["paths"]["train"], "data/splits/train.csv"],
         "validation": [cfg["paths"]["validation"], "data/splits/validation.csv"],
         "test": [cfg["paths"]["test"], "data/splits/test.csv"],
     }
-    
+
     splits = {}
     for split_name, path_options in possible_paths.items():
         for path in path_options:
@@ -45,48 +46,86 @@ def load_splits(cfg: dict):
             raise FileNotFoundError(
                 f"{split_name}.csv not found. Run python -m src.data.splitter first."
             )
-    
+
     return splits["train"], splits["validation"], splits["test"]
 
 
 def to_xy(df: pd.DataFrame, cfg: dict):
     x = df[cfg["dataset"]["text_col"]].fillna("")
-    y = (df[cfg["dataset"]["label_col"]] == "ai").astype(int)  # 1 = ai, 0 = human
+    y = (df[cfg["dataset"]["label_col"]] == "ai").astype(int)
     return x, y
+
+
+def build_pipeline(cfg: dict) -> Pipeline:
+    bcfg = cfg["baseline"]
+    union = FeatureUnion([
+        ("word", TfidfVectorizer(
+            analyzer="word",
+            ngram_range=tuple(bcfg["tfidf_ngram_range"]),
+            max_features=bcfg["tfidf_max_features"],
+            min_df=bcfg.get("tfidf_min_df", 2),
+            sublinear_tf=True,
+        )),
+        ("char", TfidfVectorizer(
+            analyzer="char_wb",
+            ngram_range=tuple(bcfg.get("char_ngram_range", [3, 5])),
+            max_features=bcfg.get("char_max_features", 15000),
+            min_df=bcfg.get("tfidf_min_df", 2),
+            sublinear_tf=True,
+        )),
+        ("style", Pipeline([
+            ("extract", StylometryTransformer()),
+            ("scale", StandardScaler()),
+        ])),
+    ])
+    clf = LogisticRegression(
+        C=bcfg["logreg_C"],
+        max_iter=bcfg["logreg_max_iter"],
+        class_weight="balanced",
+        solver="liblinear",
+        random_state=cfg["seed"],
+    )
+    return Pipeline([("features", union), ("clf", clf)])
 
 
 def train_baseline(train_df: pd.DataFrame, cfg: dict):
     x_train, y_train = to_xy(train_df, cfg)
-
-    vectorizer = TfidfVectorizer(
-        max_features=cfg["baseline"]["tfidf_max_features"],
-        ngram_range=tuple(cfg["baseline"]["tfidf_ngram_range"]),
-    )
-    x_train_vec = vectorizer.fit_transform(x_train)
-
-    clf = LogisticRegression(
-        C=cfg["baseline"]["logreg_C"],
-        max_iter=cfg["baseline"]["logreg_max_iter"],
-        random_state=cfg["seed"],
-    )
-    clf.fit(x_train_vec, y_train)
-    return vectorizer, clf
+    pipe = build_pipeline(cfg)
+    pipe.fit(x_train, y_train)
+    return pipe
 
 
-def evaluate(vectorizer, clf, df: pd.DataFrame, cfg: dict) -> dict:
+def evaluate(pipe, df: pd.DataFrame, cfg: dict) -> tuple:
     x, y_true = to_xy(df, cfg)
-    x_vec = vectorizer.transform(x)
-    y_prob = clf.predict_proba(x_vec)[:, 1]
+    y_prob = pipe.predict_proba(x)[:, 1]
     y_pred = (y_prob >= cfg["inference"]["decision_threshold"]).astype(int)
 
-    metrics = {
-        "precision": precision_score(y_true, y_pred, zero_division=0),
-        "recall": recall_score(y_true, y_pred, zero_division=0),
-        "f1": f1_score(y_true, y_pred, zero_division=0),
-        "roc_auc": roc_auc_score(y_true, y_prob) if y_true.nunique() > 1 else float("nan"),
-        "pr_auc": average_precision_score(y_true, y_prob) if y_true.nunique() > 1 else float("nan"),
-    }
-    report = classification_report(y_true, y_pred, target_names=["human", "ai"], zero_division=0)
+    # Handle single-class cases
+    if y_true.nunique() == 1:
+        # If only one class in the set, provide simple metrics
+        metrics = {
+            "n": int(len(df)),
+            "precision": float("nan"),
+            "recall": float("nan"),
+            "f1": float("nan"),
+            "roc_auc": float("nan"),
+            "pr_auc": float("nan"),
+            "brier": float(brier_score_loss(y_true, y_prob)),
+            "accuracy": float((y_pred == y_true).mean()),
+        }
+        report = f"Single class in set (only {'ai' if y_true.iloc[0] == 1 else 'human'}). Metrics limited."
+    else:
+        metrics = {
+            "n": int(len(df)),
+            "precision": float(precision_score(y_true, y_pred, zero_division=0)),
+            "recall": float(recall_score(y_true, y_pred, zero_division=0)),
+            "f1": float(f1_score(y_true, y_pred, zero_division=0)),
+            "roc_auc": float(roc_auc_score(y_true, y_prob)),
+            "pr_auc": float(average_precision_score(y_true, y_prob)),
+            "brier": float(brier_score_loss(y_true, y_prob)),
+            "accuracy": float((y_pred == y_true).mean()),
+        }
+        report = classification_report(y_true, y_pred, target_names=["human", "ai"], zero_division=0)
     return metrics, report
 
 
@@ -94,10 +133,10 @@ def main():
     cfg = load_config()
     train_df, val_df, test_df = load_splits(cfg)
 
-    vectorizer, clf = train_baseline(train_df, cfg)
+    pipe = train_baseline(train_df, cfg)
 
-    val_metrics, val_report = evaluate(vectorizer, clf, val_df, cfg)
-    test_metrics, test_report = evaluate(vectorizer, clf, test_df, cfg)
+    val_metrics, val_report = evaluate(pipe, val_df, cfg)
+    test_metrics, test_report = evaluate(pipe, test_df, cfg)
 
     print("=== Validation ===")
     print(val_report)
@@ -107,14 +146,27 @@ def main():
     print(test_metrics)
 
     os.makedirs(cfg["paths"]["models"], exist_ok=True)
-    joblib.dump(vectorizer, os.path.join(cfg["paths"]["models"], "tfidf_vectorizer.joblib"))
-    joblib.dump(clf, os.path.join(cfg["paths"]["models"], "baseline_logreg.joblib"))
+    joblib.dump(pipe, os.path.join(cfg["paths"]["models"], "fusion_detector.joblib"))
+    # Keep old filenames as aliases so older docs still work
+    joblib.dump(pipe, os.path.join(cfg["paths"]["models"], "baseline_logreg.joblib"))
+    joblib.dump(pipe, os.path.join(cfg["paths"]["models"], "tfidf_vectorizer.joblib"))
 
     os.makedirs(cfg["paths"]["reports"], exist_ok=True)
     with open(os.path.join(cfg["paths"]["reports"], "baseline_metrics.json"), "w", encoding="utf-8") as f:
-        json.dump({"validation": val_metrics, "test": test_metrics}, f, indent=2, ensure_ascii=False)
+        json.dump(
+            {
+                "model": "tfidf_word+char + stylometry + logreg",
+                "validation": val_metrics,
+                "test": test_metrics,
+                "note": "Accuracy on a tiny synthetic set is not the headline metric. Use F1, ROC-AUC, and Brier. Lab corpus ≠ Turnitin-scale data.",
+            },
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
 
-    print("Saved model + vectorizer to models/, metrics to results/reports/baseline_metrics.json")
+    print("Saved fusion pipeline to models/fusion_detector.joblib")
+    print("Metrics -> results/reports/baseline_metrics.json")
 
 
 if __name__ == "__main__":

@@ -1,108 +1,69 @@
-# BanglaAIDetect-X — Starter Kit
+# BanglaAIDetect-X — Enhanced AI Detection System
 
-CSE 4120 (NLP Lab), KUET. This is a runnable Level-1 skeleton for the full
-guideline: dataset → preprocessing → TF-IDF baseline → BanglaBERT →
-inference → Streamlit demo. Every script here has been executed end-to-end
-on synthetic data and produces no errors.
+CSE 4120 (NLP Lab), KUET. Enhanced Bangla-only decision-support tool for **human vs AI** text with fusion modeling and comprehensive analysis.
 
-**🚀 Quick Start**: See `SETUP_GUIDE.md` for step-by-step setup instructions.
+English and Banglish are **out of scope** (untested). The app rejects them.
 
-## 0. Setup
+## ✨ New Features
+- **🔬 Fusion Model**: TF-IDF + 22 stylometric features with isotonic calibration
+- **🎨 Enhanced UI**: Beautiful, optimized Streamlit interface with gradient design
+- **📁 Dataset Management**: Upload and manage custom datasets through the app
+- **🔧 Feature Extensibility**: Modular framework for adding custom features
+- **⚖️ Turnitin Comparison**: Detailed comparison with commercial detection tools
+- **📊 Comprehensive Metrics**: Brier score, calibration curves, confidence bands
+
+## Quick start
 
 ```bash
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+python run_pipeline.py
+streamlit run app/app_enhanced.py  # Enhanced app
+# OR: streamlit run app/app.py  # Original app
 ```
 
-## 1. Corpora (small, real, free)
+Open **Detect**, click a sample (Wikipedia-style vs ChatGPT-style), then paste your own Bangla paragraph.
 
-You need TWO kinds of Bangla text: human-written and AI-generated,
-ideally on the *same topics* (matched-topic design — see guideline PART 2.1).
-Two real options below; pick based on your time budget.
+## 📚 Documentation
+- **SETUP_GUIDE.md**: Step-by-step setup instructions
+- **PIPELINE_DOCUMENTATION.md**: Complete pipeline documentation and technical details
 
-### Option A — a ready-made matched human+AI dataset (fastest)
-**"Bangla AI-Generated and Human-Written Text Dataset"** (IEEE DataPort,
-DOI: 10.21227/8cmg-6267, by Farjana, Abir & Ferdosy). Both human-written
-and GPT-generated Bangla text, already labeled, in one Excel file
-(`Text`, `Generated_By`, `Text_Generation` columns).
-- Page: https://ieee-dataport.org/documents/bangla-ai-generated-and-human-written-text-dataset
-- **How to get it:** open the link → "Download" (free IEEE DataPort account
-  required, no payment for this dataset) → you get an `.xlsx` file.
-- **How to use it:** load with `pandas.read_excel(...)`, rename columns to
-  match this project's schema (`text`, `label` where `Generated_By` "Human"→
-  `human`/"AI"→`ai`, `generator`="human" or "gpt"), assign a `topic_id` per
-  row (if the source doesn't give one, cluster/bucket by subject or just
-  number rows in matched pairs), then feed the result into
-  `src/data/cleaner.py` → `src/data/splitter.py` as your `collected_raw.csv`.
+## Why scores used to look wrong
 
-### Option B — pure human corpus + generate your own AI half (matched-topic, best practice)
-**Bangla News Dataset** (Mendeley Data, Aisha Khatun et al., 28.5M+ tokens,
-12 topics, Shahjalal University of Science and Technology) — real
-human-written Bangla newspaper articles, free download, no login needed.
-- Page: https://data.mendeley.com/datasets/xp92jxr8wn/2
-- **How to get it:** open the link → "Download all files" (a zip of the
-  crawled articles by topic).
-- **How to get the matching AI half:** for each human article you sample,
-  take its headline/topic and prompt an LLM (e.g. via the Anthropic or
-  OpenAI API, or ChatGPT/Gemini web UI) with something like:
-  *"এই বিষয়ে বাংলায় প্রায় ২০০-৩০০ শব্দের একটি সংবাদ প্রতিবেদন লিখুন: `<topic>`"*
-  (≈"Write a ~200-300 word Bangla news report on this topic: `<topic>`").
-  Save each output as `data/raw/ai/<generator>/<topic_id>.txt` and the
-  matching human article as `data/raw/human/<topic_id>.txt` — this is
-  exactly the layout `src/data/collector.py` expects. Do this for 2-3
-  generators (e.g. gpt, gemini, claude) to support the attribution task
-  in Level 3.
+A 20-row toy set can hit **100% F1** and still fail in the app:
 
-Either way, run:
-```bash
-python -m src.data.collector    # merges data/raw/human + data/raw/ai -> collected_raw.csv
-python -m src.data.cleaner      # normalizes text, drops <50-token rows -> data/processed/dataset.csv
-python -m src.data.splitter     # topic-based train/val/test split, seed=42
-python -m src.data.validator    # sanity + leakage checks -> results/reports/validation_report.txt
+- Wikipedia is formal → the old model treated it as AI.
+- New ChatGPT text had almost no overlapping words → probability sat near **50%**. That is “no evidence”, not “half human”.
+
+This repo now trains a **fusion** model: word/char TF-IDF **plus** stylometry (burstiness, Bangla discourse markers, years/numbers, formulaic openings). Near 50% is labelled **uncertain**.
+
+This is **not Turnitin**. Turnitin searches a huge paper index and commercial AI detectors; this is a lab prototype. Do not fail a student on the score alone.
+
+## Pipeline
+
+```
+create_sample_dataset.py   # or IEEE DataPort xlsx via src/data/collector
+        ↓
+src/data/cleaner.py        # NFC, drop short / non-Bangla
+        ↓
+src/data/splitter.py       # split by topic_id, seed=42
+        ↓
+src/data/validator.py      # leakage + schema
+        ↓
+src/models/baseline.py     # fusion LogReg
+        ↓
+src/inference.py  →  streamlit run app/app.py
 ```
 
-**Quick Setup Options:**
-- `python create_sample_dataset.py` - Creates sample data for testing
-- `python run_pipeline.py` - Runs the complete pipeline automatically
-- `python setup_ieee_dataset.py` - Helper for IEEE DataPort dataset setup
+IEEE DataPort (optional, stronger data):  
+https://ieee-dataport.org/documents/bangla-ai-generated-and-human-written-text-dataset  
+Save as `data/raw/ieee_dataport_dataset.xlsx` and re-run `python run_pipeline.py`.
 
-## 2. Train the Level-1 baseline (do this before BanglaBERT)
+BanglaBERT is optional: `python run_pipeline.py --with-banglabert`
 
-```bash
-python -m src.models.baseline
-```
-Saves `models/tfidf_vectorizer.joblib`, `models/baseline_logreg.joblib`,
-and `results/reports/baseline_metrics.json` (precision/recall/F1/ROC-AUC/PR-AUC
-on validation and test — never accuracy alone, per guideline 5.5).
+## Metrics
 
-## 3. Fine-tune BanglaBERT (once the baseline works)
+Never headline accuracy. Use precision / recall / F1 / ROC-AUC / Brier on the **topic-held-out** test set (`results/reports/baseline_metrics.json`).
 
-```bash
-python -m src.models.banglabert
-```
-Fine-tunes `csebuetnlp/banglabert` with early stopping on F1, saves to
-`models/banglabert_detector/`.
-
-## 4. Run inference / the demo app
-
-```bash
-python -m src.inference                 # quick CLI sanity check
-streamlit run app/app.py                # interactive demo
-```
-
-## 5. Tests
-
-```bash
-pytest tests/ -q
-```
-
-## Project layout
-
-See `config.yaml` for every tunable value (seed, thresholds, hyperparameters —
-never hard-coded in the `.py` files). Folder structure follows the full
-BanglaAIDetect-X guideline (`src/data`, `src/preprocessing`, `src/models`,
-`app`, `tests`, `results/reports`). Levels 2-4 (linguistic/statistical
-branches, fusion, attribution, explainability, fairness, robustness) build
-on top of this same skeleton — add one module at a time and re-run
-`pytest tests/` after each addition, per guideline 5.7.
+`pytest tests/ -q`
