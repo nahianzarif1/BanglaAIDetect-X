@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+data/raw/**/*.txt
+data/raw/**/*.csv
+data/processed/*.csv
+data/splits/*.csv
+models/**/*.joblib
+models/**/pytorch_model.bin
+models/**/*.safetensors
+results/reports/*
+!results/reports/.gitkeep
+.venv/
+venv/

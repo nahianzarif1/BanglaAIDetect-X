@@ -1,0 +1,40 @@
+seed: 42
+
+paths:
+  raw_human: "data/raw/human"
+  raw_ai: "data/raw/ai"
+  processed: "data/processed/dataset.csv"
+  train: "data/splits/train.csv"
+  validation: "data/splits/validation.csv"
+  test: "data/splits/test.csv"
+  metadata: "data/metadata/dataset_metadata.csv"
+  reports: "results/reports"
+  models: "models"
+
+dataset:
+  min_tokens: 50          # reject/flag samples shorter than this
+  label_col: "label"       # "human" / "ai"
+  text_col: "text"
+  topic_col: "topic_id"
+  split_ratio:             # by topic_id, not by row
+    train: 0.70
+    validation: 0.15
+    test: 0.15
+
+baseline:
+  tfidf_max_features: 20000
+  tfidf_ngram_range: [1, 2]
+  logreg_C: 1.0
+  logreg_max_iter: 1000
+
+banglabert:
+  model_name: "csebuetnlp/banglabert"
+  max_length: 256
+  batch_size: 8
+  epochs: 5
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+
+inference:
+  decision_threshold: 0.5
