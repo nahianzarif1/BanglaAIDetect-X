@@ -41,26 +41,33 @@ def collapse_whitespace(text: str) -> str:
     return text.strip()
 
 
-def detect_script(text: str) -> str:
-    """
-    Returns one of: 'bangla', 'banglish', 'mixed', 'other'.
-    Heuristic: compare Bangla-script char count vs. Latin-alphabet char count.
-    'banglish' = Romanized Bangla written mostly in Latin letters but is
-    Bangla in meaning; this heuristic only flags scripts, not semantics,
-    so treat 'banglish' here as "mostly Latin letters" and validate further
-    upstream if needed.
-    """
-    bangla_chars = len(_BANGLA_RANGE.findall(text))
-    latin_chars = len(_LATIN_RANGE.findall(text))
+def script_counts(text: str) -> dict:
+    bangla_chars = len(_BANGLA_RANGE.findall(text or ""))
+    latin_chars = len(_LATIN_RANGE.findall(text or ""))
     total = bangla_chars + latin_chars
-    if total == 0:
+    bangla_ratio = (bangla_chars / total) if total else 0.0
+    return {
+        "bangla_chars": bangla_chars,
+        "latin_chars": latin_chars,
+        "bangla_ratio": bangla_ratio,
+    }
+
+
+def detect_script(text: str) -> str:
+    """Returns 'bangla', 'latin', 'mixed', or 'other'."""
+    stats = script_counts(text)
+    if stats["bangla_chars"] + stats["latin_chars"] == 0:
         return "other"
-    bangla_ratio = bangla_chars / total
-    if bangla_ratio >= 0.9:
+    if stats["bangla_ratio"] >= 0.85:
         return "bangla"
-    if bangla_ratio <= 0.1:
-        return "banglish"
+    if stats["bangla_ratio"] <= 0.15:
+        return "latin"
     return "mixed"
+
+
+def is_supported_bangla(text: str, min_ratio: float = 0.75) -> bool:
+    """This detector only supports Bangla script — not English or Banglish."""
+    return script_counts(text)["bangla_ratio"] >= min_ratio
 
 
 def normalize_text(text: str) -> str:

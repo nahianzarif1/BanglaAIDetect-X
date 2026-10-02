@@ -18,7 +18,7 @@ from datasets import Dataset
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
 from transformers import (
     AutoTokenizer, AutoModelForSequenceClassification,
-    TrainingArguments, Trainer, EarlyStoppingCallback,
+    TrainingArguments, Trainer,
 )
 
 
@@ -38,6 +38,11 @@ def load_datasets(cfg: dict, tokenizer):
     train_df = pd.read_csv(cfg["paths"]["train"])
     val_df = pd.read_csv(cfg["paths"]["validation"])
     test_df = pd.read_csv(cfg["paths"]["test"])
+
+    # Remove duplicates to avoid batch size issues
+    train_df = train_df.drop_duplicates(subset=[cfg["dataset"]["text_col"]])
+    val_df = val_df.drop_duplicates(subset=[cfg["dataset"]["text_col"]])
+    test_df = test_df.drop_duplicates(subset=[cfg["dataset"]["text_col"]])
 
     def to_ds(df: pd.DataFrame) -> Dataset:
         df = df.copy()
@@ -88,7 +93,6 @@ def main():
         per_device_eval_batch_size=cfg["banglabert"]["batch_size"],
         learning_rate=cfg["banglabert"]["learning_rate"],
         num_train_epochs=cfg["banglabert"]["epochs"],
-        warmup_ratio=cfg["banglabert"]["warmup_ratio"],
         weight_decay=cfg["banglabert"]["weight_decay"],
         eval_strategy="epoch",
         save_strategy="epoch",
@@ -96,6 +100,7 @@ def main():
         metric_for_best_model="f1",
         seed=cfg["seed"],
         report_to=[],
+        warmup_steps=100,  # Use warmup_steps instead of warmup_ratio for compatibility
     )
 
     trainer = Trainer(
@@ -104,7 +109,7 @@ def main():
         train_dataset=train_ds,
         eval_dataset=val_ds,
         compute_metrics=compute_metrics,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
+        # Remove EarlyStoppingCallback for compatibility
     )
 
     trainer.train()

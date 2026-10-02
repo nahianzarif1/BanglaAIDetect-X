@@ -28,6 +28,8 @@ def clean_dataframe(df: pd.DataFrame, min_tokens: int) -> tuple:
 
     token_counts = df["text"].str.split().apply(len)
     keep_mask = token_counts >= min_tokens
+    if "language_type" in df.columns:
+        keep_mask = keep_mask & df["language_type"].isin(["bangla"])
     dropped = df[~keep_mask]
     kept = df[keep_mask].reset_index(drop=True)
     return kept, dropped

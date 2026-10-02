@@ -12,29 +12,52 @@ paths:
   models: "models"
 
 dataset:
-  min_tokens: 50          # reject/flag samples shorter than this
-  label_col: "label"       # "human" / "ai"
+  min_tokens: 10
+  label_col: "label"
   text_col: "text"
   topic_col: "topic_id"
-  split_ratio:             # by topic_id, not by row
+  split_ratio:
     train: 0.70
     validation: 0.15
     test: 0.15
 
 baseline:
-  tfidf_max_features: 20000
+  tfidf_max_features: 12000
   tfidf_ngram_range: [1, 2]
-  logreg_C: 1.0
-  logreg_max_iter: 1000
+  tfidf_min_df: 2
+  char_ngram_range: [3, 5]
+  char_max_features: 12000
+  logreg_C: 0.8
+  logreg_max_iter: 2000
 
 banglabert:
   model_name: "csebuetnlp/banglabert"
-  max_length: 256
-  batch_size: 8
-  epochs: 5
+  max_length: 128
+  batch_size: 16
+  epochs: 3
   learning_rate: 2.0e-5
   warmup_ratio: 0.1
   weight_decay: 0.01
 
 inference:
   decision_threshold: 0.5
+  uncertain_margin: 0.08
+  min_bangla_ratio: 0.75
+
+fusion:
+  tfidf_max_features: 12000
+  tfidf_ngram_range: [1, 2]
+  tfidf_min_df: 2
+  char_ngram_range: [3, 5]
+  char_max_features: 12000
+  logreg_C: 0.8
+  logreg_max_iter: 2000
+  use_calibration: true
+  calibration_method: "isotonic"
+  calibration_cv: 5
+
+features:
+  use_stylometry: true
+  use_burstiness: true
+  use_markers: true
+  use_digit_density: true

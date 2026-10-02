@@ -32,62 +32,58 @@ def run_command(command, description):
 
 
 def main():
-    print("="*60)
+    print("=" * 60)
     print("BanglaAIDetect-X Complete Pipeline Runner")
-    print("="*60)
-    
-    # Check if we have the IEEE dataset or need to use sample data
+    print("=" * 60)
+
+    with_banglabert = "--with-banglabert" in sys.argv
+
     ieee_path = "data/raw/ieee_dataport_dataset.xlsx"
-    
+
     if not os.path.exists(ieee_path):
-        print("\nIEEE DataPort dataset not found.")
-        print("Creating sample dataset for testing...")
-        if not run_command("python create_sample_dataset.py", "Create sample dataset"):
-            print("Failed to create sample dataset. Exiting.")
+        print("\nIEEE DataPort dataset not found — using realistic dataset for better accuracy.")
+        if not run_command("python create_realistic_dataset.py", "Create realistic dataset"):
+            print("Failed to create dataset. Exiting.")
             return
     else:
-        print(f"\n✓ IEEE DataPort dataset found at {ieee_path}")
-        if not run_command("python -m src.data.collector", "Data collection"):
-            print("Data collection failed. Exiting.")
+        print(f"\n✓ Custom dataset found at {ieee_path}")
+        if not run_command("python load_custom_dataset.py", "Load and convert custom dataset"):
+            print("Custom dataset loading failed. Exiting.")
             return
-    
-    # Run the data processing pipeline
+
     steps = [
         ("python -m src.data.cleaner", "Data cleaning and normalization"),
-        ("python -m src.data.splitter", "Data splitting (train/val/test)"),
+        ("python -m src.data.splitter", "Topic-based train/val/test split"),
         ("python -m src.data.validator", "Data validation"),
+        ("python -m src.models.baseline", "Fusion TF-IDF + stylometry training"),
     ]
-    
+
     for command, description in steps:
         if not run_command(command, description):
             print(f"{description} failed. Exiting.")
             return
-    
-    # Train models
-    model_steps = [
-        ("python -m src.models.baseline", "TF-IDF baseline model training"),
-        ("python -m src.models.banglabert", "BanglaBERT model training"),
-    ]
-    
-    for command, description in model_steps:
-        if not run_command(command, description):
-            print(f"{description} failed. You can continue with other models or fix the issue.")
-            # Don't exit, allow user to continue with other models
-    
-    # Test inference
-    print("\n" + "="*60)
-    print("Testing inference pipeline")
-    print("="*60)
+
+    if with_banglabert:
+        run_command("python -m src.models.banglabert", "BanglaBERT fine-tune (optional)")
+    else:
+        print("\nSkipping BanglaBERT (optional). Pass --with-banglabert if PyTorch is installed.")
+
+    print("\n" + "=" * 60)
+    print("Testing inference")
+    print("=" * 60)
     if not run_command("python -m src.inference", "Inference test"):
-        print("Inference test failed, but models may still work.")
-    
-    print("\n" + "="*60)
+        print("Inference test failed, but you can still inspect reports.")
+
+    print("\n" + "=" * 60)
     print("Pipeline completed!")
-    print("="*60)
-    print("\nTo run the Streamlit app:")
+    print("=" * 60)
+    print("\n🚀 To run the Streamlit app:")
     print("streamlit run app/app.py")
-    print("\nTo run tests:")
+    print("\n🧪 To run tests:")
     print("pytest tests/")
+    print("\n📈 View results in:")
+    print("- results/reports/fusion_metrics.json (Fusion model)")
+    print("- results/reports/baseline_metrics.json (Baseline model)")
 
 
 if __name__ == "__main__":
