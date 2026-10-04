@@ -1,0 +1,7 @@
+-r requirements.txt
+torch>=2.6,<3
+transformers>=4.46,<5
+accelerate>=1,<2
+sentencepiece>=0.2,<1
+safetensors>=0.4,<1
+normalizer @ git+https://github.com/csebuetnlp/normalizer.git@d405944dde5ceeacb7c2fd3245ae2a9dea5f35c9
