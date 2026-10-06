@@ -42,13 +42,16 @@ def collapse_whitespace(text: str) -> str:
 
 
 def script_counts(text: str) -> dict:
-    bangla_chars = len(_BANGLA_RANGE.findall(text or ""))
-    latin_chars = len(_LATIN_RANGE.findall(text or ""))
-    total = bangla_chars + latin_chars
+    letters = [ch for ch in (text or "") if unicodedata.category(ch)[0] in {"L", "M"}]
+    bangla_chars = sum("\u0980" <= ch <= "\u09ff" for ch in letters)
+    latin_chars = sum(unicodedata.name(ch, "").startswith("LATIN") for ch in letters)
+    other_chars = len(letters)-bangla_chars-latin_chars
+    total = len(letters)
     bangla_ratio = (bangla_chars / total) if total else 0.0
     return {
         "bangla_chars": bangla_chars,
         "latin_chars": latin_chars,
+        "other_chars": other_chars,
         "bangla_ratio": bangla_ratio,
     }
 
@@ -56,12 +59,15 @@ def script_counts(text: str) -> dict:
 def detect_script(text: str) -> str:
     """Returns 'bangla', 'latin', 'mixed', or 'other'."""
     stats = script_counts(text)
-    if stats["bangla_chars"] + stats["latin_chars"] == 0:
+    total = stats["bangla_chars"] + stats["latin_chars"] + stats["other_chars"]
+    if total == 0:
         return "other"
     if stats["bangla_ratio"] >= 0.85:
         return "bangla"
-    if stats["bangla_ratio"] <= 0.15:
+    if stats["latin_chars"] / total >= 0.85:
         return "latin"
+    if stats["bangla_chars"] == stats["latin_chars"] == 0:
+        return "other"
     return "mixed"
 
 

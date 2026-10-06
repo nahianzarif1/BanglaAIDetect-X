@@ -1,72 +1,47 @@
-"""
-src/data/cleaner.py
-
-Reads data/processed/collected_raw.csv (produced by collector.py),
-applies deterministic normalization, drops/flags below-threshold rows,
-and writes the final data/processed/dataset.csv (the single source of
-truth that splitter.py reads from).
-"""
-
-import os
-import sys
-import yaml
+"""Normalize and remove invalid, duplicate, or label-conflicting documents."""
+from pathlib import Path
 import pandas as pd
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
-from src.preprocessing.normalize import normalize_text, detect_script  # noqa: E402
-
-
-def load_config(path: str = "config.yaml") -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+from src.config import load_config
+from src.data.grouping import text_fingerprint
+from src.preprocessing.normalize import normalize_text, is_supported_bangla
+from src.research import write_json
 
 
-def clean_dataframe(df: pd.DataFrame, min_tokens: int) -> tuple:
+def clean_dataframe(df, min_tokens, min_bangla_ratio=.75):
+    if not {"id", "text", "label"}.issubset(df):
+        raise ValueError("Dataset must contain id, text, and label.")
     df = df.copy()
-    df["text"] = df["text"].fillna("").apply(normalize_text)
-    df["language_type"] = df["text"].apply(detect_script)
-
-    token_counts = df["text"].str.split().apply(len)
-    keep_mask = token_counts >= min_tokens
-    if "language_type" in df.columns:
-        keep_mask = keep_mask & df["language_type"].isin(["bangla"])
-    dropped = df[~keep_mask]
-    kept = df[keep_mask].reset_index(drop=True)
+    if df.label.isna().any() or not set(df.label).issubset({"human", "ai"}):
+        raise ValueError("All labels must be human or ai.")
+    if df.id.isna().any() or df.id.duplicated().any() or df.id.astype(str).str.strip().eq("").any():
+        raise ValueError("Every document needs a unique, nonempty ID.")
+    df["text"] = df.text.fillna("").astype(str).map(normalize_text)
+    df["text_hash"] = df.text.map(text_fingerprint)
+    conflicts = set(df.groupby("text_hash").label.nunique().loc[lambda x: x > 1].index)
+    df["drop_reason"] = ""
+    df.loc[df.text.str.split().map(len) < min_tokens, "drop_reason"] = "too_short"
+    df.loc[~df.text.map(lambda t: is_supported_bangla(t, min_bangla_ratio)), "drop_reason"] = "unsupported_script"
+    df.loc[df.duplicated("text_hash"), "drop_reason"] = "duplicate_text"
+    df.loc[df.text_hash.isin(conflicts), "drop_reason"] = "conflicting_labels"
+    dropped = df.loc[df.drop_reason.ne("")].copy()
+    kept = df.loc[df.drop_reason.eq("")].drop(columns="drop_reason").reset_index(drop=True)
+    if kept.empty:
+        raise ValueError("No eligible Bangla documents remain after cleaning.")
     return kept, dropped
 
 
-def main():
-    cfg = load_config()
-    # Check for both possible locations of the collected raw file
-    possible_paths = [
-        os.path.join(os.path.dirname(cfg["paths"]["processed"]), "collected_raw.csv"),
-        "data/processed/collected_raw.csv",
-    ]
-    
-    raw_merged_path = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            raw_merged_path = path
-            break
-    
-    if raw_merged_path is None:
-        raise FileNotFoundError(
-            "collected_raw.csv not found. Run python -m src.data.collector or python create_sample_dataset.py first."
-        )
-    
-    df = pd.read_csv(raw_merged_path)
-
-    kept, dropped = clean_dataframe(df, cfg["dataset"]["min_tokens"])
-
-    os.makedirs(os.path.dirname(cfg["paths"]["processed"]), exist_ok=True)
+def main(cfg=None):
+    cfg = cfg or load_config()
+    raw = Path(cfg["paths"]["processed"]).parent / "collected_raw.csv"
+    kept, dropped = clean_dataframe(pd.read_csv(raw), cfg["dataset"]["min_tokens"], cfg["inference"]["min_bangla_ratio"])
     kept.to_csv(cfg["paths"]["processed"], index=False)
-
-    os.makedirs(cfg["paths"]["reports"], exist_ok=True)
-    dropped_path = os.path.join(cfg["paths"]["reports"], "dropped_short_samples.csv")
-    dropped.to_csv(dropped_path, index=False)
-
-    print(f"Kept {len(kept)} rows -> {cfg['paths']['processed']}")
-    print(f"Dropped {len(dropped)} below-threshold rows -> {dropped_path}")
+    reports = Path(cfg["paths"]["reports"])
+    reports.mkdir(parents=True, exist_ok=True)
+    dropped.to_csv(reports / "dropped_samples.csv", index=False)
+    write_json(reports / "cleaning_report.json", {"input_rows": len(kept) + len(dropped), "kept": len(kept),
+        "dropped": len(dropped), "drop_reasons": dropped.drop_reason.value_counts().to_dict()})
+    print(f"Cleaning: kept {len(kept)}; dropped {len(dropped)}.")
+    return kept
 
 
 if __name__ == "__main__":
