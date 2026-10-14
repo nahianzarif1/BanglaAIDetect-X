@@ -1,142 +1,105 @@
-"""
-src/inference.py
-
-Turns Bangla text into a structured, decision-support prediction.
-English / Banglish are rejected — they were never evaluated.
-"""
-
-import os
-import yaml
-import joblib
-
-from src.preprocessing.normalize import (
-    normalize_text, detect_script, is_supported_bangla, script_counts,
-)
+"""Validated Bangla inference for classical, transformer, and ensemble models."""
+import math
+import numpy as np
+from src.config import load_config
+from src.models.registry import load_registry, load_predictor
+from src.preprocessing.normalize import normalize_text, detect_script, is_supported_bangla, script_counts
 from src.features.stylometry import extract_style_features, style_explanations
 
 
-class InputValidationError(Exception):
+class InputValidationError(ValueError):
     pass
 
 
-def load_config(path: str = "config.yaml") -> dict:
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-
-def _confidence_band(ai_probability: float, uncertain_margin: float) -> str:
-    dist = abs(ai_probability - 0.5)
-    if dist < uncertain_margin:
+def _confidence_band(ai_probability, uncertain_margin, threshold=.5):
+    distance = abs(ai_probability-threshold)
+    if distance < uncertain_margin:
         return "low"
-    if dist < uncertain_margin * 2:
+    if distance < uncertain_margin*2:
         return "medium"
     return "high"
 
 
 class BanglaAIDetector:
-    """Fusion detector (TF-IDF + stylometry). BanglaBERT can replace the
-    joblib pipeline later without changing this return schema."""
-
-    def __init__(self, cfg: dict = None):
+    def __init__(self, cfg=None, model_id=None):
         self.cfg = cfg or load_config()
-        models_dir = self.cfg["paths"]["models"]
-        candidates = [
-            os.path.join(models_dir, "fusion_detector.joblib"),
-            os.path.join(models_dir, "baseline_logreg.joblib"),
-        ]
-        path = next((p for p in candidates if os.path.exists(p)), None)
-        if path is None:
-            raise FileNotFoundError(
-                "Trained detector not found. Run `python -m src.models.baseline` first."
-            )
-        self.pipe = joblib.load(path)
+        registry = load_registry(self.cfg)
+        self.model_id = model_id or registry["default_model"]
+        self.pipe = load_predictor(self.model_id, self.cfg)
+        self.metadata = registry["models"][self.model_id]
+        self.threshold = self.metadata.get("threshold", self.cfg["inference"]["decision_threshold"])
         self.min_tokens = self.cfg["dataset"]["min_tokens"]
-        self.min_bangla_ratio = self.cfg["inference"].get("min_bangla_ratio", 0.75)
+        self.min_bangla_ratio = self.cfg["inference"].get("min_bangla_ratio", .75)
 
-    def _validate(self, text: str) -> str:
-        if text is None or not isinstance(text, str) or not text.strip():
+    def _validate(self, text):
+        if not isinstance(text, str) or not text.strip():
             raise InputValidationError("ইনপুট খালি। বাংলা অনুচ্ছেদ লিখুন।")
+        if len(text) > self.cfg["inference"].get("max_characters", 100000):
+            raise InputValidationError("Text exceeds the 100,000-character limit. Split it into passages.")
         try:
             text.encode("utf-8")
-        except UnicodeEncodeError as e:
-            raise InputValidationError(f"ইনপুট বৈধ UTF-8 নয়: {e}")
-
+        except UnicodeEncodeError as exc:
+            raise InputValidationError("Input contains invalid Unicode.") from exc
         clean = normalize_text(text)
         if not is_supported_bangla(clean, self.min_bangla_ratio):
-            script = detect_script(clean)
-            raise InputValidationError(
-                "এই সংস্করণ শুধু বাংলা লিপির লেখা যাচাই করে। "
-                f"ইংরেজি বা বাংলিশ সমর্থিত নয় (detected: {script})।"
-            )
+            raise InputValidationError("এই সংস্করণ শুধু বাংলা লিপির লেখা যাচাই করে। ইংরেজি বা বাংলিশ সমর্থিত নয়।")
         if len(clean.split()) < self.min_tokens:
-            raise InputValidationError(
-                f"কমপক্ষে {self.min_tokens}টি শব্দ দিন — ছোট উদ্ধৃতিতে স্কোর নির্ভরযোগ্য নয়।"
-            )
+            raise InputValidationError(f"কমপক্ষে {self.min_tokens}টি শব্দ দিন। ছোট লেখায় স্কোর নির্ভরযোগ্য নয়।")
         return clean
 
-    def predict(self, text: str) -> dict:
-        try:
-            clean = self._validate(text)
-        except InputValidationError as e:
-            return {"error": str(e)}
+    def _result(self, clean, probability, include_style=True):
+        probability = float(probability)
+        if not math.isfinite(probability) or not 0 <= probability <= 1:
+            raise ValueError("Model returned an invalid probability. Retrain the artifact.")
+        margin = self.cfg["inference"].get("uncertain_margin", .08)
+        separation = _confidence_band(probability, margin, self.threshold)
+        label = "uncertain" if separation == "low" else ("ai" if probability >= self.threshold else "human")
+        result = {"label": label, "ai_probability": round(probability, 6), "human_probability": round(1-probability, 6),
+            "model": self.model_id, "model_name": self.metadata["name"], "model_kind": self.metadata["kind"],
+            "threshold": self.threshold, "confidence": separation, "score_separation": separation,
+            "detected_script": detect_script(clean), "bangla_ratio": round(script_counts(clean)["bangla_ratio"], 3),
+            "token_count": len(clean.split()), "style": {}, "cues": [],
+            "note": "This score is a model estimate of authorship, not the percentage of words written by AI. "
+                    "Score separation measures distance from the validation-selected threshold, not statistical certainty. "
+                    "Human review and independent evidence are required for academic-integrity decisions."}
+        if include_style:
+            result["style"] = {key: float(value) for key, value in extract_style_features(clean).items()}
+            result["cues"] = style_explanations(clean)
+        if len(clean.split()) < 80:
+            result["note"] += " Short passages have limited evidence."
+        if hasattr(self.pipe, "truncation_count"):
+            truncated = self.pipe.truncation_count(clean)
+            result["truncated_tokens"] = truncated
+            if truncated:
+                result["note"] += f" This transformer used the first {self.pipe.metadata['max_length']} subword tokens; {truncated} tokens were truncated."
+        if self.metadata["kind"] == "ensemble":
+            result["note"] += " Transformer members, when present, use prefix truncation."
+        return result
 
-        try:
-            script = detect_script(clean)
-            counts = script_counts(clean)
-            ai_probability = float(self.pipe.predict_proba([clean])[0, 1])
-            human_probability = 1.0 - ai_probability
-            assert 0 <= ai_probability <= 1
-            assert abs(ai_probability + human_probability - 1) < 1e-6
+    def predict(self, text):
+        return self.predict_many([text], include_style=True)[0]
 
-            threshold = self.cfg["inference"]["decision_threshold"]
-            margin = self.cfg["inference"].get("uncertain_margin", 0.12)
-            confidence = _confidence_band(ai_probability, margin)
-            if confidence == "low":
-                label = "uncertain"
-            else:
-                label = "ai" if ai_probability >= threshold else "human"
-
-            style = extract_style_features(clean)
-            cues = style_explanations(clean)
-            tokens = len(clean.split())
-
-            reliability_note = (
-                "Decision-support estimate for Bangla text only — not an academic-integrity verdict. "
-                "Unlike Turnitin, this lab model has no billion-document index and no paid LLM watermark API."
-            )
-            if tokens < 80:
-                reliability_note += " Short passages are easier to mis-score; paste a full paragraph."
-
-            return {
-                "label": label,
-                "ai_probability": round(ai_probability, 4),
-                "human_probability": round(human_probability, 4),
-                "confidence": confidence,
-                "detected_script": script,
-                "bangla_ratio": round(counts["bangla_ratio"], 3),
-                "token_count": tokens,
-                "style": {k: (round(v, 4) if isinstance(v, float) else v) for k, v in style.items()},
-                "cues": cues,
-                "note": reliability_note,
-            }
-        except Exception as e:
-            return {"error": f"Inference failed: {e}"}
+    def predict_many(self, texts, include_style=False):
+        texts = list(texts)
+        if len(texts) > 1000:
+            raise InputValidationError("Batch limit is 1,000 passages.")
+        results, clean_texts, positions = [None]*len(texts), [], []
+        for index, text in enumerate(texts):
+            try:
+                clean_texts.append(self._validate(text))
+                positions.append(index)
+            except InputValidationError as exc:
+                results[index] = {"error": str(exc), "model": self.model_id}
+        if clean_texts:
+            probabilities = self.pipe.predict_proba(clean_texts)[:, 1]
+            for index, clean, p in zip(positions, clean_texts, probabilities, strict=True):
+                results[index] = self._result(clean, p, include_style)
+        return results
 
 
 if __name__ == "__main__":
+    from app.samples import DEMOS
     detector = BanglaAIDetector()
-    wiki = (
-        "ঢাকা বাংলাদেশের রাজধানী ও বৃহত্তম শহর। ২০২২ সালের আদমশুমারি অনুযায়ী সিটি কর্পোরেশন "
-        "এলাকার জনসংখ্যা প্রায় এক কোটি। শহরটি বুড়িগঙ্গা নদীর তীরে গড়ে উঠেছে। মুঘল আমলে এটি "
-        "প্রাদেশিক কেন্দ্র ছিল, যদিও আধুনিক নগরায়ণ স্বাধীনতার পর তীব্র হয়। যানজট ও জলাবদ্ধতা "
-        "নিত্য সমস্যা। পুরান ঢাকার গলি ও নতুন ঢাকার পরিকল্পিত এলাকা পাশাপাশি টিকে আছে। "
-        "মেট্রোরেল চালু হলেও সারা মহানগরীর চাপ কমেনি বলে নগর পরিকল্পকরা মনে করেন।"
-    )
-    gpt = (
-        "ঢাকা হলো বাংলাদেশের একটি গুরুত্বপূর্ণ শহর। এটি সমাজ, অর্থনীতি এবং দৈনন্দিন জীবনে "
-        "গুরুত্বপূর্ণ ভূমিকা পালন করে। এছাড়াও শিক্ষা, সংস্কৃতি এবং প্রশাসনে এর ইতিবাচক প্রভাব দেখা যায়। "
-        "অন্যদিকে নগরায়ণ সম্পর্কিত চ্যালেঞ্জগুলো সঠিকভাবে মোকাবিলা করা প্রয়োজন। "
-        "সর্বোপরি ঢাকা বিষয়ে সচেতনতা বৃদ্ধি এবং টেকসই উন্নয়ন নিশ্চিত করা অপরিহার্য।"
-    )
-    print("WIKI-LIKE:", detector.predict(wiki))
-    print("CHATGPT-LIKE:", detector.predict(gpt))
+    print("Loaded", detector.model_id)
+    for sample in DEMOS:
+        print(sample["title"], detector.predict(sample["text"]))
