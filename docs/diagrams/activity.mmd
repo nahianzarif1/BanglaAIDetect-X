@@ -1,0 +1,20 @@
+flowchart TD
+    START(["Start single-passage analysis"]) --> MODEL["Choose a locally trained model"]
+    MODEL --> INPUT["Paste Bangla text or choose an illustrative example"]
+    INPUT --> CLICK["Click Analyze text"]
+    CLICK --> NORMALIZE["Normalize and validate input"]
+    NORMALIZE --> VALID{"Enough words and Bangla script?"}
+    VALID -- No --> ERROR["Display validation error"]
+    ERROR --> INPUT
+    VALID -- Yes --> LOAD["Load selected local predictor"]
+    LOAD --> OK{"Artifact and inference succeed?"}
+    OK -- No --> FAILURE["Display actionable error"]
+    FAILURE --> MODEL
+    OK -- Yes --> SCORE["Compute AI and human scores"]
+    SCORE --> CLOSE{"Within uncertainty margin of threshold?"}
+    CLOSE -- Yes --> UNCERTAIN["Uncertain: review needed"]
+    CLOSE -- No --> DECISION["AI-like or human-like by selected threshold"]
+    UNCERTAIN --> RESULT["Display scores, length and style observations"]
+    DECISION --> RESULT
+    RESULT --> DOWNLOAD["Optional JSON download or model comparison"]
+    DOWNLOAD --> END(["Finish"])

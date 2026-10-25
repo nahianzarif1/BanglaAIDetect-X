@@ -1,0 +1,21 @@
+flowchart TB
+    INPUT["Labeled CSV or Excel"] --> IMPORT["Import and preserve source metadata"]
+    IMPORT --> CLEAN["Normalize, filter and remove exact conflicts"]
+    CLEAN --> GROUP["Group related documents and near duplicates"]
+    GROUP --> SPLIT["Deterministic group-disjoint partitions"]
+    SPLIT --> VALIDATE["Validate schema, labels and partition isolation"]
+    VALIDATE --> TRAIN["Training partition"]
+    VALIDATE --> VAL["Validation partition"]
+    VALIDATE --> TEST["Test partition"]
+    TRAIN --> CLASSICAL["Seven classical pipelines and ablations"]
+    TRAIN --> NEURAL["Frozen encoder + supervised head / optional fine-tuning"]
+    CLASSICAL --> SELECT["Validation thresholds, ensemble weights and default model"]
+    NEURAL --> SELECT
+    VAL --> SELECT
+    SELECT --> ARTIFACTS["Local artifacts and model registry"]
+    SELECT --> EVAL["Locked test evaluation"]
+    TEST --> EVAL
+    EVAL --> REPORT["Metrics, paired tests, intervals and provenance"]
+    ARTIFACTS --> DETECTOR["BanglaAIDetector"]
+    DETECTOR --> APP["Streamlit text and batch analysis"]
+    REPORT --> APP

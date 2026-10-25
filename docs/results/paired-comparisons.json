@@ -1,0 +1,138 @@
+{
+  "run_id": "20261013T155905925965Z",
+  "reference": "banglabert",
+  "reference_selection": "highest validation macro-F1 among single models unless explicitly supplied",
+  "comparisons": {
+    "word_lr": {
+      "accuracy_difference": 0.0,
+      "macro_f1_difference": 0.0,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.004463104814941818,
+        0.004460804512613515
+      ],
+      "paired_group_permutation_p": 1.0,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 1.0
+    },
+    "char_lr": {
+      "accuracy_difference": -0.0033444816053511705,
+      "macro_f1_difference": -0.003344539799268076,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.008935935941730552,
+        0.0022302741828891443
+      ],
+      "paired_group_permutation_p": 0.43656343656343655,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 1.0
+    },
+    "word_char_lr": {
+      "accuracy_difference": -0.002229654403567447,
+      "macro_f1_difference": -0.0022296377768667996,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.007805012623625429,
+        0.002238739528088851
+      ],
+      "paired_group_permutation_p": 0.6843156843156843,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 1.0
+    },
+    "style_lr": {
+      "accuracy_difference": -0.021181716833890748,
+      "macro_f1_difference": -0.0211817306893608,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.032386340953238585,
+        -0.011151762327201572
+      ],
+      "paired_group_permutation_p": 0.000999000999000999,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 0.00999000999000999
+    },
+    "fusion_lr": {
+      "accuracy_difference": -0.004459308807134894,
+      "macro_f1_difference": -0.004459330976068987,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.011180598715592942,
+        0.0022322827013434078
+      ],
+      "paired_group_permutation_p": 0.35564435564435565,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 1.0
+    },
+    "linear_svm": {
+      "accuracy_difference": 0.002229654403567447,
+      "macro_f1_difference": 0.002229648861003408,
+      "macro_f1_difference_95pct_group_ci": [
+        0.0,
+        0.005583153538718524
+      ],
+      "paired_group_permutation_p": 0.4945054945054945,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 1.0
+    },
+    "naive_bayes": {
+      "accuracy_difference": -0.017837235228539576,
+      "macro_f1_difference": -0.01783763981786901,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.029003853448997006,
+        -0.00892811864177899
+      ],
+      "paired_group_permutation_p": 0.003996003996003996,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 0.03596403596403597
+    },
+    "mbert": {
+      "accuracy_difference": -0.011148272017837236,
+      "macro_f1_difference": -0.011148903858249515,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.0200669591070164,
+        -0.003370515756526652
+      ],
+      "paired_group_permutation_p": 0.014985014985014986,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 0.11988011988011989
+    },
+    "xlm_roberta": {
+      "accuracy_difference": -0.004459308807134894,
+      "macro_f1_difference": -0.004459912956880974,
+      "macro_f1_difference_95pct_group_ci": [
+        -0.011148409813018673,
+        0.0011184472847838689
+      ],
+      "paired_group_permutation_p": 0.2947052947052947,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 1.0
+    },
+    "ensemble": {
+      "accuracy_difference": 0.0011148272017837235,
+      "macro_f1_difference": 0.0011148188882785792,
+      "macro_f1_difference_95pct_group_ci": [
+        0.0,
+        0.003352474428636729
+      ],
+      "paired_group_permutation_p": 1.0,
+      "groups": 897,
+      "rows": 897,
+      "repetitions": 1000,
+      "holm_adjusted_p": 1.0
+    }
+  },
+  "note": "Paired group sign permutation assumes exchangeability under the null. Holm adjustment covers this family. Corpus-specific significance does not establish external robustness."
+}

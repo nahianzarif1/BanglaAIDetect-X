@@ -1,0 +1,49 @@
+classDiagram
+    class BanglaAIDetector {
+        +dict cfg
+        +str model_id
+        +dict metadata
+        +float threshold
+        +predict(text) dict
+        +predict_many(texts) list
+        -_validate(text) str
+        -_result(text, probability) dict
+    }
+    class Registry {
+        <<module>>
+        +load_registry(cfg) dict
+        +available_models(cfg) dict
+        +load_predictor(model_id, cfg) object
+    }
+    class TransformerPredictor {
+        +dict metadata
+        +object tokenizer
+        +object model
+        +object head
+        +predict_proba(texts) ndarray
+        +truncation_count(text) int
+    }
+    class EnsemblePredictor {
+        +dict cfg
+        +dict weights
+        +dict members
+        +predict_proba(texts) ndarray
+        +compare(texts) dict
+        -_member_probability(name, texts) ndarray
+    }
+    class SklearnPredictor {
+        <<external>>
+        +predict_proba(texts) ndarray
+    }
+    class StylometryTransformer {
+        +fit(X, y) self
+        +transform(X) ndarray
+    }
+    BanglaAIDetector ..> Registry : loads metadata and predictor
+    BanglaAIDetector --> TransformerPredictor : can use
+    BanglaAIDetector --> EnsemblePredictor : can use
+    BanglaAIDetector --> SklearnPredictor : can use
+    EnsemblePredictor ..> Registry : loads members
+    EnsemblePredictor o--> TransformerPredictor : loads sequentially
+    EnsemblePredictor o--> SklearnPredictor : caches members
+    SklearnPredictor o--> StylometryTransformer : style and fusion pipelines

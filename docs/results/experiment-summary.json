@@ -1,0 +1,686 @@
+{
+  "source_run_id": "20261013T155905925965Z",
+  "training_seed": 42,
+  "trained_options": 11,
+  "default_model": "banglabert",
+  "selection": "maximum validation macro-F1, then minimum validation Brier; test never used for selection",
+  "split_hashes": {
+    "train": "ff0dd578db2cbcd28780e03ddc92d41ef044280372fad11d731d2165bb52bcf8",
+    "validation": "e34b915ab66688e02af380990bc9e6e63d3554d0e3a990eff20fc661dec4c53e",
+    "test": "c2a607a03de630ee12786e569521f2e88b4440979b8302a950f35f4095cd61fd"
+  },
+  "split_manifest": {
+    "group_count": 5979,
+    "near_duplicate_links": 10,
+    "jaccard_threshold": 0.9,
+    "grouping": "document-and-near-duplicate",
+    "limitation": "Genuine topic IDs unavailable; this is not topic-held-out. LSH is approximate; paraphrases may remain undetected.",
+    "train": {
+      "rows": 4194,
+      "groups": 4185,
+      "labels": {
+        "human": 2100,
+        "ai": 2094
+      }
+    },
+    "validation": {
+      "rows": 898,
+      "groups": 897,
+      "labels": {
+        "ai": 449,
+        "human": 449
+      }
+    },
+    "test": {
+      "rows": 897,
+      "groups": 897,
+      "labels": {
+        "human": 451,
+        "ai": 446
+      }
+    }
+  },
+  "versions": {
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.1",
+    "torch": "2.14.0",
+    "transformers": "4.57.6",
+    "streamlit": "1.64.0",
+    "normalizer": "0.0.1"
+  },
+  "models": {
+    "word_lr": {
+      "name": "Word TF-IDF · logistic regression",
+      "kind": "sklearn",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9977728174603174,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9966555183946488,
+        "precision": 0.9933184855233853,
+        "recall": 1.0,
+        "f1": 0.9966480446927374,
+        "macro_f1": 0.9966555017679481,
+        "balanced_accuracy": 0.9966740576496674,
+        "mcc": 0.9933333003008831,
+        "roc_auc": 0.9999453133544789,
+        "pr_auc": 0.9999446643541021,
+        "brier": 0.022198042558365605,
+        "human_false_positive_rate": 0.0066518847006651885,
+        "threshold": 0.53
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.992196209587514,
+          1.0
+        ],
+        "macro_f1": [
+          0.9921896476447665,
+          1.0
+        ],
+        "f1": [
+          0.9920899475977504,
+          1.0
+        ],
+        "roc_auc": [
+          0.9998359331701562,
+          1.0
+        ],
+        "brier": [
+          0.019966420285835496,
+          0.024513898097839194
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 883,
+        "n_uncertain": 14,
+        "coverage": 0.9843924191750278,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9988674971687429,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    },
+    "char_lr": {
+      "name": "Character TF-IDF · logistic regression",
+      "kind": "sklearn",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9933184855233853,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9933110367892977,
+        "precision": 0.9910714285714286,
+        "recall": 0.9955156950672646,
+        "f1": 0.9932885906040269,
+        "macro_f1": 0.9933109619686801,
+        "balanced_accuracy": 0.9933232577331887,
+        "mcc": 0.9866318004169665,
+        "roc_auc": 0.9999303988147913,
+        "pr_auc": 0.9999302761058514,
+        "brier": 0.014296782493590126,
+        "human_false_positive_rate": 0.008869179600886918,
+        "threshold": 0.52
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9866220735785953,
+          0.9977703455964325
+        ],
+        "macro_f1": [
+          0.9866219172864319,
+          0.9977698882685065
+        ],
+        "f1": [
+          0.9866954915003695,
+          0.9978357310792656
+        ],
+        "roc_auc": [
+          0.9998007430984551,
+          1.0
+        ],
+        "brier": [
+          0.01219242307016806,
+          0.01686971365525063
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 890,
+        "n_uncertain": 7,
+        "coverage": 0.992196209587514,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9977528089887641,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    },
+    "word_char_lr": {
+      "name": "Word + character TF-IDF · logistic regression",
+      "kind": "sklearn",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9955456570155902,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9944258639910813,
+        "precision": 0.9889135254988913,
+        "recall": 1.0,
+        "f1": 0.9944258639910813,
+        "macro_f1": 0.9944258639910813,
+        "balanced_accuracy": 0.9944567627494456,
+        "mcc": 0.9889135254988913,
+        "roc_auc": 0.9999801139470833,
+        "pr_auc": 0.9999799583886885,
+        "brier": 0.009929164084878267,
+        "human_false_positive_rate": 0.011086474501108648,
+        "threshold": 0.45999999999999996
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.987736900780379,
+          0.9988851727982163
+        ],
+        "macro_f1": [
+          0.9877366386273686,
+          0.9988849732430871
+        ],
+        "f1": [
+          0.9878721058434399,
+          0.9988998899889989
+        ],
+        "roc_auc": [
+          0.9999005571284708,
+          1.0
+        ],
+        "brier": [
+          0.008324496203553917,
+          0.01205291674180133
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 891,
+        "n_uncertain": 6,
+        "coverage": 0.9933110367892977,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9977553310886644,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    },
+    "style_lr": {
+      "name": "Stylometry · logistic regression",
+      "kind": "sklearn",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9788412148629863,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9754738015607581,
+        "precision": 0.9711111111111111,
+        "recall": 0.9798206278026906,
+        "f1": 0.9754464285714286,
+        "macro_f1": 0.9754737710785873,
+        "balanced_accuracy": 0.9754978970499041,
+        "mcc": 0.9509863384644917,
+        "roc_auc": 0.9987819792588468,
+        "pr_auc": 0.9987777154339439,
+        "brier": 0.014716486494176293,
+        "human_false_positive_rate": 0.028824833702882482,
+        "threshold": 0.45999999999999996
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9654403567447045,
+          0.9844202898550725
+        ],
+        "macro_f1": [
+          0.9654355494414898,
+          0.9844197496416104
+        ],
+        "f1": [
+          0.9650367210735183,
+          0.9850675796634444
+        ],
+        "roc_auc": [
+          0.9980347382496024,
+          0.999483942126449
+        ],
+        "brier": [
+          0.010061183472371263,
+          0.018805953612779307
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 884,
+        "n_uncertain": 13,
+        "coverage": 0.9855072463768116,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9852941176470589,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    },
+    "fusion_lr": {
+      "name": "Word + character + stylometry · logistic regression",
+      "kind": "sklearn",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9910912698412699,
+      "test": {
+        "n": 897,
+        "accuracy": 0.992196209587514,
+        "precision": 0.9845474613686535,
+        "recall": 1.0,
+        "f1": 0.9922135706340378,
+        "macro_f1": 0.9921961707918792,
+        "balanced_accuracy": 0.9922394678492239,
+        "mcc": 0.9845131979373464,
+        "roc_auc": 0.9998061109840614,
+        "pr_auc": 0.9998038433994735,
+        "brier": 0.006340933282626139,
+        "human_false_positive_rate": 0.015521064301552107,
+        "threshold": 0.39
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9866220735785953,
+          0.9966555183946488
+        ],
+        "macro_f1": [
+          0.986620710056159,
+          0.9966553708268535
+        ],
+        "f1": [
+          0.9867474922637646,
+          0.9967289940464868
+        ],
+        "roc_auc": [
+          0.9995169309579617,
+          0.9999654486056248
+        ],
+        "brier": [
+          0.003909299093328537,
+          0.008646360700305026
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 892,
+        "n_uncertain": 5,
+        "coverage": 0.9944258639910813,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9932735426008968,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    },
+    "linear_svm": {
+      "name": "Word + character · calibrated linear SVM",
+      "kind": "sklearn",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.998886412872968,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9988851727982163,
+        "precision": 0.9977628635346756,
+        "recall": 1.0,
+        "f1": 0.9988801791713325,
+        "macro_f1": 0.9988851506289516,
+        "balanced_accuracy": 0.9988913525498891,
+        "mcc": 0.997772784267906,
+        "roc_auc": 1.0,
+        "pr_auc": 1.0,
+        "brier": 0.0011753440597850977,
+        "human_false_positive_rate": 0.0022172949002217295,
+        "threshold": 0.38
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9955406911928651,
+          1.0
+        ],
+        "macro_f1": [
+          0.9955405692155689,
+          1.0
+        ],
+        "f1": [
+          0.9956521739130435,
+          1.0
+        ],
+        "roc_auc": [
+          0.9999999999999999,
+          1.0
+        ],
+        "brier": [
+          0.00032935051688940406,
+          0.002968032289328531
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 896,
+        "n_uncertain": 1,
+        "coverage": 0.9988851727982163,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9988839285714286,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    },
+    "naive_bayes": {
+      "name": "Word + character · Complement Naive Bayes",
+      "kind": "sklearn",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9788416346827546,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9788182831661093,
+        "precision": 0.9692307692307692,
+        "recall": 0.9887892376681614,
+        "f1": 0.978912319644839,
+        "macro_f1": 0.9788178619500791,
+        "balanced_accuracy": 0.9788735545325287,
+        "mcc": 0.9578328267147953,
+        "roc_auc": 0.9968331460730017,
+        "pr_auc": 0.9966443642292857,
+        "brier": 0.02499817788052022,
+        "human_false_positive_rate": 0.031042128603104215,
+        "threshold": 0.9
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9687848383500557,
+          0.987736900780379
+        ],
+        "macro_f1": [
+          0.9687728451992456,
+          0.9877268454225553
+        ],
+        "f1": [
+          0.9683235616261839,
+          0.9874041885942364
+        ],
+        "roc_auc": [
+          0.9943210811207543,
+          0.9987866053501367
+        ],
+        "brier": [
+          0.016433007419028443,
+          0.03464580271142695
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 881,
+        "n_uncertain": 16,
+        "coverage": 0.9821627647714605,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.985244040862656,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    },
+    "banglabert": {
+      "name": "BanglaBERT",
+      "kind": "transformer_embeddings",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 1.0,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9966555183946488,
+        "precision": 0.9933184855233853,
+        "recall": 1.0,
+        "f1": 0.9966480446927374,
+        "macro_f1": 0.9966555017679481,
+        "balanced_accuracy": 0.9966740576496674,
+        "mcc": 0.9933333003008831,
+        "roc_auc": 0.9999850854603124,
+        "pr_auc": 0.9999849631430927,
+        "brier": 0.002458126011157004,
+        "human_false_positive_rate": 0.0066518847006651885,
+        "threshold": 0.5
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.993283166109253,
+          1.0
+        ],
+        "macro_f1": [
+          0.9932681445640189,
+          1.0
+        ],
+        "f1": [
+          0.9929606937147921,
+          1.0
+        ],
+        "roc_auc": [
+          0.9999301208592739,
+          1.0
+        ],
+        "brier": [
+          0.00044138998457577734,
+          0.005252346049687299
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 897,
+        "n_uncertain": 0,
+        "coverage": 1.0,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9966555183946488,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": {
+        "checkpoint": "csebuetnlp/banglabert",
+        "checkpoint_revision": "9ce791f330578f50da6bc52b54205166fb5d1c8c",
+        "mode": "embeddings",
+        "training_method": "frozen pretrained encoder, mean pooling, supervised logistic head",
+        "max_length": 256,
+        "normalizer": "buet",
+        "training_rows": 4194,
+        "seed": 42
+      }
+    },
+    "mbert": {
+      "name": "Multilingual BERT",
+      "kind": "transformer_embeddings",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9888636453827533,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9855072463768116,
+        "precision": 0.9865168539325843,
+        "recall": 0.984304932735426,
+        "f1": 0.9854096520763187,
+        "macro_f1": 0.9855065979096986,
+        "balanced_accuracy": 0.9855005816670478,
+        "mcc": 0.9710156456934803,
+        "roc_auc": 0.998687520507492,
+        "pr_auc": 0.9986901717356254,
+        "brier": 0.012878849911980081,
+        "human_false_positive_rate": 0.013303769401330377,
+        "threshold": 0.61
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9765886287625418,
+          0.992196209587514
+        ],
+        "macro_f1": [
+          0.9765875346763438,
+          0.9921760685148009
+        ],
+        "f1": [
+          0.9764283192693565,
+          0.9923554056638214
+        ],
+        "roc_auc": [
+          0.9977062116688841,
+          0.999359772061667
+        ],
+        "brier": [
+          0.008712936357925513,
+          0.018658033096961596
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 890,
+        "n_uncertain": 7,
+        "coverage": 0.992196209587514,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9865168539325843,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": {
+        "checkpoint": "google-bert/bert-base-multilingual-cased",
+        "checkpoint_revision": "3f076fdb1ab68d5b2880cb87a0886f315b8146f8",
+        "mode": "embeddings",
+        "training_method": "frozen pretrained encoder, mean pooling, supervised logistic head",
+        "max_length": 256,
+        "normalizer": "project",
+        "training_rows": 4194,
+        "seed": 42
+      }
+    },
+    "xlm_roberta": {
+      "name": "XLM-RoBERTa",
+      "kind": "transformer_embeddings",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 0.9977728285077951,
+      "test": {
+        "n": 897,
+        "accuracy": 0.992196209587514,
+        "precision": 0.9954853273137697,
+        "recall": 0.9887892376681614,
+        "f1": 0.9921259842519685,
+        "macro_f1": 0.9921955888110672,
+        "balanced_accuracy": 0.9921773239338589,
+        "mcc": 0.9844133779092086,
+        "roc_auc": 0.9998508546031242,
+        "pr_auc": 0.9998479130648976,
+        "brier": 0.005209688840158563,
+        "human_false_positive_rate": 0.004434589800443459,
+        "threshold": 0.5
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9855072463768116,
+          0.9977703455964325
+        ],
+        "macro_f1": [
+          0.9855045710582019,
+          0.9977702114669313
+        ],
+        "f1": [
+          0.9855699786067011,
+          0.9977533094767398
+        ],
+        "roc_auc": [
+          0.999577201616757,
+          0.9999951521961794
+        ],
+        "brier": [
+          0.0022536892600440645,
+          0.008933012097153572
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 894,
+        "n_uncertain": 3,
+        "coverage": 0.9966555183946488,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9944071588366891,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": {
+        "checkpoint": "FacebookAI/xlm-roberta-base",
+        "checkpoint_revision": "e73636d4f797dec63c3081bb6ed5c7b0bb3f2089",
+        "mode": "embeddings",
+        "training_method": "frozen pretrained encoder, mean pooling, supervised logistic head",
+        "max_length": 256,
+        "normalizer": "project",
+        "training_rows": 4194,
+        "seed": 42
+      }
+    },
+    "ensemble": {
+      "name": "Validation-weighted ensemble",
+      "kind": "ensemble",
+      "local_artifact_verified": true,
+      "validation_macro_f1": 1.0,
+      "test": {
+        "n": 897,
+        "accuracy": 0.9977703455964325,
+        "precision": 0.9955357142857143,
+        "recall": 1.0,
+        "f1": 0.9977628635346756,
+        "macro_f1": 0.9977703206562267,
+        "balanced_accuracy": 0.9977827050997783,
+        "mcc": 0.9955505621319118,
+        "roc_auc": 1.0,
+        "pr_auc": 1.0,
+        "brier": 0.0014863635827939473,
+        "human_false_positive_rate": 0.004434589800443459,
+        "threshold": 0.5
+      },
+      "test_95pct_group_bootstrap_ci": {
+        "accuracy": [
+          0.9933110367892977,
+          1.0
+        ],
+        "macro_f1": [
+          0.9933110234878317,
+          1.0
+        ],
+        "f1": [
+          0.9935029019652915,
+          1.0
+        ],
+        "roc_auc": [
+          0.9999999999999999,
+          1.0
+        ],
+        "brier": [
+          0.00044988668541955817,
+          0.003184998037163654
+        ]
+      },
+      "selective_test": {
+        "n_scored": 897,
+        "n_confident": 896,
+        "n_uncertain": 1,
+        "coverage": 0.9988851727982163,
+        "uncertain_margin": 0.08,
+        "confident_accuracy": 0.9988839285714286,
+        "note": "Primary classification metrics use forced binary labels. This table measures the app's abstention policy."
+      },
+      "transformer": null
+    }
+  },
+  "ensemble_weights": {
+    "banglabert": 0.5476311902295743,
+    "char_lr": 0.0,
+    "fusion_lr": 0.0,
+    "linear_svm": 0.3016931852778448,
+    "mbert": 0.0,
+    "naive_bayes": 0.0,
+    "style_lr": 0.0,
+    "word_char_lr": 0.0,
+    "word_lr": 0.0,
+    "xlm_roberta": 0.1506756244925809
+  },
+  "not_run": {
+    "banglabert_small": "Supported checkpoint; no completed local training run.",
+    "full_transformer_finetuning": "Implemented and tested with a tiny offline encoder; the three reported full checkpoints use frozen encoders."
+  },
+  "limitations": [
+    "Genuine topic IDs unavailable; this is not topic-held-out. LSH is approximate; paraphrases may remain undetected.",
+    "Single corpus and seed; external, topic-held-out, and unseen-generator generalization are not established.",
+    "Local trained artifacts are not included in Git; a fresh clone must train models.",
+    "Illustrative sample styles do not establish authorship; high held-out scores do not guarantee reliable new-text predictions."
+  ]
+}

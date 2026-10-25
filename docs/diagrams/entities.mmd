@@ -1,0 +1,55 @@
+erDiagram
+    DOCUMENT_GROUP ||--|{ DOCUMENT : groups
+    SPLIT_SNAPSHOT }o--|{ DOCUMENT : contains
+    EXPERIMENT_RUN }o--|{ SPLIT_SNAPSHOT : records_hashes_of
+    EXPERIMENT_RUN ||--|{ MODEL_EVALUATION : reports
+    MODEL_ARTIFACT ||--o{ MODEL_EVALUATION : evaluated_as
+    MODEL_EVALUATION ||--|{ PREDICTION : produces
+    DOCUMENT ||--o{ PREDICTION : scored_in
+    DOCUMENT_GROUP {
+        string group_id PK
+    }
+    DOCUMENT {
+        string id PK
+        string group_id FK
+        string text
+        string label
+        string generator
+        string source
+        string genre
+        string topic_id "optional real metadata"
+    }
+    SPLIT_SNAPSHOT {
+        string sha256 PK
+        string split_name
+        int document_count
+    }
+    EXPERIMENT_RUN {
+        string run_id PK
+        int seed
+        string config_snapshot
+        string code_hashes
+        string versions
+    }
+    MODEL_ARTIFACT {
+        string artifact_path PK
+        string model_id
+        string kind
+        string checkpoint_revision "transformers only"
+    }
+    MODEL_EVALUATION {
+        string run_id FK
+        string model_id
+        string artifact_path FK
+        float threshold
+        float validation_macro_f1
+        float test_macro_f1
+    }
+    PREDICTION {
+        string run_id FK
+        string model_id
+        string document_id FK
+        string split_name
+        float ai_probability
+        string predicted_label
+    }
