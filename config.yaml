@@ -1,21 +1,22 @@
 seed: 42
 
 paths:
-  raw_human: "data/raw/human"
-  raw_ai: "data/raw/ai"
-  processed: "data/processed/dataset.csv"
-  train: "data/splits/train.csv"
-  validation: "data/splits/validation.csv"
-  test: "data/splits/test.csv"
-  metadata: "data/metadata/dataset_metadata.csv"
-  reports: "results/reports"
-  models: "models"
+  raw_human: data/raw/human
+  raw_ai: data/raw/ai
+  processed: data/processed/dataset.csv
+  train: data/splits/train.csv
+  validation: data/splits/validation.csv
+  test: data/splits/test.csv
+  metadata: data/metadata/dataset_metadata.csv
+  reports: results/reports
+  models: models
 
 dataset:
   min_tokens: 10
-  label_col: "label"
-  text_col: "text"
-  topic_col: "topic_id"
+  label_col: label
+  text_col: text
+  topic_col: topic_id
+  near_duplicate_threshold: 0.9
   split_ratio:
     train: 0.70
     validation: 0.15
@@ -29,35 +30,27 @@ baseline:
   char_max_features: 12000
   logreg_C: 0.8
   logreg_max_iter: 2000
-
-banglabert:
-  model_name: "csebuetnlp/banglabert"
-  max_length: 128
-  batch_size: 16
-  epochs: 3
-  learning_rate: 2.0e-5
-  warmup_ratio: 0.1
-  weight_decay: 0.01
+  calibration_method: sigmoid
+  calibration_folds: 3
 
 inference:
   decision_threshold: 0.5
   uncertain_margin: 0.08
   min_bangla_ratio: 0.75
+  max_characters: 100000
 
-fusion:
-  tfidf_max_features: 12000
-  tfidf_ngram_range: [1, 2]
-  tfidf_min_df: 2
-  char_ngram_range: [3, 5]
-  char_max_features: 12000
-  logreg_C: 0.8
-  logreg_max_iter: 2000
-  use_calibration: true
-  calibration_method: "isotonic"
-  calibration_cv: 5
+# Frozen encoders train a supervised linear head; finetune updates the encoder.
+transformers:
+  max_length: 256
+  batch_size: 8
+  embedding_batch_size: 16
+  epochs: 3
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+  gradient_accumulation_steps: 2
+  head_C: 0.1
+  device: auto
 
-features:
-  use_stylometry: true
-  use_burstiness: true
-  use_markers: true
-  use_digit_density: true
+evaluation:
+  bootstrap_repetitions: 200

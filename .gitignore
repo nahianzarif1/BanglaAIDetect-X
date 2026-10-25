@@ -13,3 +13,12 @@ results/reports/*
 !results/reports/.gitkeep
 .venv/
 venv/
+.DS_Store
+.cache/
+models/artifacts/
+models/registry.json
+models/.training.lock
+results/experiments/
+results/external/
+.pytest_cache/
+*.log

@@ -45,22 +45,12 @@ def test_ai_markers_increase_density():
     assert extract_style_features(ai)["ai_marker_density"] > extract_style_features(hu)["ai_marker_density"]
 
 
-def test_prediction_range():
-    ai_probability = 0.73
-    human_probability = 1 - ai_probability
-    assert 0 <= ai_probability <= 1
-    assert abs(ai_probability + human_probability - 1) < 1e-6
+
+def test_numbers_are_not_bangla_prose():
+    assert not is_supported_bangla("১ ২ ৩ ৪ ৫ ৬ ৭ ৮ ৯ ১০ ১১")
+    assert detect_script("১২৩৪৫৬৭৮৯") == "other"
 
 
-def test_pipeline_output_schema():
-    fake_result = {
-        "label": "ai",
-        "ai_probability": 0.73,
-        "human_probability": 0.27,
-        "confidence": "high",
-        "detected_script": "bangla",
-        "note": "Decision-support estimate, not an infallible determination.",
-    }
-    required_keys = {"label", "ai_probability", "human_probability", "detected_script", "note"}
-    assert required_keys.issubset(fake_result.keys())
-    assert fake_result["label"] in {"human", "ai", "uncertain"}
+def test_other_scripts_count_toward_language_ratio():
+    assert not is_supported_bangla("বাংলা " + "пример текста на русском языке " * 10)
+    assert detect_script("हिन्दी भाषा") == "other"
